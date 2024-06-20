@@ -1,6 +1,8 @@
 #include <iostream>
 #include <ctime>
+#include <vector>
 #include <algorithm>
+
 
 using namespace std;
 
@@ -11,7 +13,7 @@ const int damageSum = 80; //total damage sum
 const float highRiskSum = 10.9833; //total high risk sum
 const int reliefCostSum = 130000; //total relief sum
 const int areaCount = 40; //total area count
-const int population = 30; //population size 
+const int population = 2; //population size - TEST
 const double crossoverProb = 0.8; //crossover probability
 
 //damage severity for each area
@@ -34,10 +36,12 @@ float fitness[population]; //fitness data structure
 int parent[2][gene];//parent's data structure
 int children[2][gene];//child's data structure
 
-void initializePopulation() {
+void initializePopulation(int popChromosomes[][gene]) {
 
 	cout << "\x1B[93mInitialization of Population\033[0m\n\n"; //DEBUG
 	
+	//TEST
+	/*
 	//for each chromosome (c) in the population
 	for (int c = 0; c < population; c++) {
 
@@ -55,6 +59,17 @@ void initializePopulation() {
 			used[area] = true; //mark the area as used
 		}
 	}
+	*/
+
+	//for each chromosome (c) in the population
+	for (int c = 0; c < 2; c++) {
+		//for each gene (g) in the chromosome
+		for (int g = 0; g < gene; g++) {
+			chromosome[c][g] = popChromosomes[c][g]; //assign the gene from the preset chromosome
+		}
+	}
+	//END TEST
+
 	
 	//print the chromosome - DEBUG
 	//for each chromosome (c) in the population
@@ -208,50 +223,173 @@ void crossover() { //order crossover
 			point2 = rand() % gene;
 		} while (point1 >= point2); //make sure point1 is less than point2
 
-
-		//declare temporary variables
-		int temp1[gene]{}, temp2[gene]{};
-		int index = 0;
-
-		//copy the genes between the two points to temporary arrays
-		for (int g = point1; g <= point2; g++) {
-			temp1[index] = parent[0][g];
-			temp2[index] = parent[1][g];
-			index++;
-		}
-
-		//swap the genes between the two points in the children chromosomes
-		for (int g = point1; g <= point2; g++) {
-			children[0][g] = temp2[g - point1];
-			children[1][g] = temp1[g - point1];
-		}
-		//check for duplicates in the children chromosomes
-		//for each parent (p) in the children data structure
-		for (int p = 0; p < 2; p++) {
-			//for each gene (g) in the chromosome
-			for (int g = 0; g < gene; g++) {
-				//if the gene is a duplicate, replace it with the corresponding gene from the parent
-				for (int i = 0; i < gene; i++) {
-					if (children[p][g] == children[p][i] && g != i) {
-						children[p][g] = parent[p][i];
-					}
-				}
-			}
-		}
-
-
 		//print the crossover points - DEBUG
 		cout << "\tCrossover Points: " << point1 << " and " << point2 << endl;
 		cout << "\tProbability of Crossover: " << random << endl;
 
-		//print the children - DEBUG
-		cout << "\x1B[97m\n\tChildren\033[0m\n";
-		//for each parent (p) in the children data structure
-		for (int p = 0; p < 2; p++) {
-			cout << "\tChild " << p + 1 << ": ";
+		//declare temporary variables
+		int temp1[gene]{}, temp2[gene]{};
+
+		//create dynamic array to store all the children genes using vector
+		vector<int> queue1, queue2;
+
+		//DEBUG - STEP 2
+		//copy the genes between the two points to temporary arrays
+		for (int g = point1; g <= point2; g++) {
+			temp1[g] = parent[0][g];
+			temp2[g] = parent[1][g];
+		}
+
+		//DEBUG 
+		// print the temporary arrays - DEBUG
+		cout << "\x1B[97m\n\tTemporary Arrays\033[0m\n";
+		cout << "\tTemporary 1: ";
+		for (int i = 0; i < gene; i++) {
+			cout << temp1[i] << " ";
+		}
+		cout << endl;
+		cout << "\tTemporary 2: ";
+		for (int i = 0; i < gene; i++) {
+			cout << temp2[i] << " ";
+		}
+		cout << endl;
+
+		//store the other values in temp as -1 means empty
+		for (int g = 0; g < gene; g++) {
+			if (temp1[g] == 0) {
+				temp1[g] = -1;
+			}
+			if (temp2[g] == 0) {
+				temp2[g] = -1;
+			}
+		}
+		
+		//DEBUG - STEP 3 
+		//Copy the remaining genes after point2 to the temporary vectors
+		for (int g = point2 + 1; g < gene; g++) {
+			queue1.push_back(parent[0][g]);
+			queue2.push_back(parent[1][g]);
+		}
+
+		//copy the remaining genes before point2 to the temporary vectors
+		for (int g = 0; g <= point2; g++) {
+			queue1.push_back(parent[0][g]);
+			queue2.push_back(parent[1][g]);
+		}
+
+		//DEBUG - STEP 4 and 5
+		//remove the values on the queue1 from respective temporary array
+		for (int i = 0; i < gene; i++) {
+			if (temp2[i] != -1) {
+				queue1.erase(remove(queue1.begin(), queue1.end(), temp2[i]), queue1.end());
+			}
+		}
+		
+		//remove the values on the queue2 from respective temporary array
+		for (int i = 0; i < gene; i++) {
+			if (temp1[i] != -1) {
+				queue2.erase(remove(queue2.begin(), queue2.end(), temp1[i]), queue2.end());
+			}
+		}
+
+		//swap the two values in the temporary arrays 
+		int temp[gene]{};
+		for (int g = 0; g < gene; g++) {
+			temp[g] = temp1[g];
+			temp1[g] = temp2[g];
+			temp2[g] = temp[g];
+		}
+
+		//DEBUG
+		//print the queue - DEBUG
+		cout << "\x1B[97m\n\tQueue (Before)\033[0m\n";
+		cout << "\tQueue 1: ";
+		for (int i = 0; i < queue1.size(); i++) {
+			cout << queue1[i] << " ";
+		}
+		cout << endl;
+		cout << "\tQueue 2: ";
+		for (int i = 0; i < queue2.size(); i++) {
+			cout << queue2[i] << " ";
+		}
+		cout << endl;
+
+		//DEBUG - STEP 6
+		// fill the empty spaces in the temporary arrays with the values in the queue after point 2
+		for (int g = point2 + 1; g < gene && !queue1.empty(); g++) {
+			temp1[g] = queue1.front();
+			queue1.erase(queue1.begin());
+			temp2[g] = queue2.front();
+			queue2.erase(queue2.begin());
+		}
+
+		//DEBUG
+		//print the queue - DEBUG
+		cout << "\x1B[97m\n\tQueue (After)\033[0m\n";
+		cout << "\tQueue 1: ";
+		for (int i = 0; i < queue1.size(); i++) {
+			cout << queue1[i] << " ";
+		}
+		cout << endl;
+		cout << "\tQueue 2: ";
+		for (int i = 0; i < queue2.size(); i++) {
+			cout << queue2[i] << " ";
+		}
+		cout << endl;
+
+		//SINI
+		// fill the empty spaces in the temporary arrays with the values in the queue before point 2
+		int g = 0;
+		while (g <= point2 && !queue1.empty() && !queue2.empty()) {
+			for (int i = 0; i < gene; i++) {
+				if (temp1[i] == -1) {
+					temp1[i] = queue1.front();
+					queue1.erase(queue1.begin());
+					break;
+				}
+			}
+			for (int i = 0; i < gene; i++) {
+				if (temp2[i] == -1) {
+					temp2[i] = queue2.front();
+					queue2.erase(queue2.begin());
+					break;
+				}
+			}
+			g++;
+		}
+
+		//clear the queue vectors
+		queue1.clear();
+		queue2.clear();
+
+		//DEBUG 
+		// print the temporary arrays - DEBUG
+		cout << "\x1B[97m\n\tTemporary Arrays\033[0m\n";
+		cout << "\tTemporary 1: ";
+		for (int i = 0; i < gene; i++) {
+			cout << temp1[i] << " ";
+		}
+		cout << endl;
+		cout << "\tTemporary 2: ";
+		for (int i = 0; i < gene; i++) {
+			cout << temp2[i] << " ";
+		}
+		cout << endl;
+
+		//copy the temporary arrays to the children chromosomes
+		for (int g = 0; g < gene; g++) {
+			children[0][g] = temp1[g];
+			children[1][g] = temp2[g];
+		}
+
+		//print the children chromosomes - DEBUG
+		cout << "\x1B[97m\n\tChildren Chromosomes\033[0m\n";
+		//for each child (c) in the children data structure
+		for (int c = 0; c < 2; c++) {
+			cout << "\tChild " << c + 1 << ": ";
 			//for each gene (g) in the chromosome
 			for (int g = 0; g < gene; g++) {
-				cout << children[p][g] << " ";
+				cout << children[c][g] << " ";
 			}
 			cout << endl;
 		}
@@ -265,9 +403,27 @@ void crossover() { //order crossover
 
 int main() {
 	srand(time(NULL));
-	initializePopulation();
+
+	//TEST
+	int popChromosomes[2][gene] = {
+	   {18, 7, 8, 24, 10, 2, 14, 35, 39, 19, 3, 27, 37, 21, 28},
+	   {35, 17, 18, 12, 32, 24, 13, 7, 28, 25, 27, 1, 37, 5, 22}
+	};
+	
+	initializePopulation(popChromosomes); // - TEST
+	// END TEST
+	
+
 	evaluateChromosome();
-	parentSelection();
+	//parentSelection(); - TEST
+
+	//TEST
+	for (int g = 0; g < gene; g++) {
+		parent[0][g] = chromosome[0][g];
+		parent[1][g] = chromosome[1][g];
+	}
+	// END TEST
+
 	crossover();
 	//mutation();
 	//survivorSelection();

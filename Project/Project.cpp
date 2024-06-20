@@ -13,7 +13,7 @@ const int damageSum = 80; //total damage sum
 const float highRiskSum = 10.9833; //total high risk sum
 const int reliefCostSum = 130000; //total relief sum
 const int areaCount = 40; //total area count
-const int population = 2; //population size - TEST
+const int population = 30; //population size
 const double crossoverProb = 0.8; //crossover probability
 
 //damage severity for each area
@@ -36,12 +36,10 @@ float fitness[population]; //fitness data structure
 int parent[2][gene];//parent's data structure
 int children[2][gene];//child's data structure
 
-void initializePopulation(int popChromosomes[][gene]) {
+void initializePopulation() {
 
 	cout << "\x1B[93mInitialization of Population\033[0m\n\n"; //DEBUG
 	
-	//TEST
-	/*
 	//for each chromosome (c) in the population
 	for (int c = 0; c < population; c++) {
 
@@ -59,18 +57,7 @@ void initializePopulation(int popChromosomes[][gene]) {
 			used[area] = true; //mark the area as used
 		}
 	}
-	*/
 
-	//for each chromosome (c) in the population
-	for (int c = 0; c < 2; c++) {
-		//for each gene (g) in the chromosome
-		for (int g = 0; g < gene; g++) {
-			chromosome[c][g] = popChromosomes[c][g]; //assign the gene from the preset chromosome
-		}
-	}
-	//END TEST
-
-	
 	//print the chromosome - DEBUG
 	//for each chromosome (c) in the population
 	for (int c = 0; c < population; c++) {
@@ -403,27 +390,9 @@ void crossover() { //order crossover
 
 int main() {
 	srand(time(NULL));
-
-	//TEST
-	int popChromosomes[2][gene] = {
-	   {18, 7, 8, 24, 10, 2, 14, 35, 39, 19, 3, 27, 37, 21, 28},
-	   {35, 17, 18, 12, 32, 24, 13, 7, 28, 25, 27, 1, 37, 5, 22}
-	};
-	
-	initializePopulation(popChromosomes); // - TEST
-	// END TEST
-	
-
+	initializePopulation();
 	evaluateChromosome();
-	//parentSelection(); - TEST
-
-	//TEST
-	for (int g = 0; g < gene; g++) {
-		parent[0][g] = chromosome[0][g];
-		parent[1][g] = chromosome[1][g];
-	}
-	// END TEST
-
+	parentSelection();
 	crossover();
 	//mutation();
 	//survivorSelection();

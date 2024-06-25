@@ -2,7 +2,7 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
-
+#include <numeric>
 
 using namespace std;
 
@@ -15,6 +15,7 @@ const int reliefCostSum = 130000; //total relief sum
 const int areaCount = 40; //total area count
 const int population = 30; //population size
 const double crossoverProb = 0.8; //crossover probability
+const double mutationProb = 0.8; //mutation probability
 
 //damage severity for each area
 const int damageSeverity[areaCount] = { 1,1,1,3,2,2,3,3,3,3,2,2,2,2,2,2,3,2,1,2,2,2,1,1,1,2,3,3,1,2,1,1,3,1,3,2,3,3,1,2};
@@ -114,6 +115,10 @@ void evaluateChromosome() {
 		//print the fitness value - DEBUG
 		cout << "\tChromosome " << c + 1 << " - fitness: " << fitness[c] << endl;
 	}
+}
+
+float totalChromosomeFitness(const vector<float>& fitness) {
+	return accumulate(fitness.begin(), fitness.end(), 0.0f);
 }
 
 void parentSelection() { //Tournament Selection
@@ -388,13 +393,114 @@ void crossover() { //order crossover
 	}
 }
 
+void mutation() { //Random Resetting Mutation
+
+	cout << "\n\x1B[93mMutation\033[0m\n\n"; //DEBUG
+
+	for (int c = 0; c < 2; c++) {
+		double random = (rand() % 11) / 10.0;
+		
+		if (random < mutationProb) {
+			int selectedGene = (rand() % gene); //Select random Gene
+
+			int mutatedGene;
+			do {
+				mutatedGene = rand() & areaCount + 1;
+			} while (find(children[c], children[c] + gene, mutatedGene) != children[c] + gene);
+
+			cout << "\tMutating Gene " << selectedGene << " of child " << c + 1 << " from " << children[c][selectedGene] << " to " << mutatedGene << endl; //Debug
+
+			children[c][selectedGene] = mutatedGene;
+		}
+		else {
+			cout << "\tMutation did not occur for child " << c + 1 << endl;
+		}
+			
+	} 
+
+	cout << "\x1B[97m\n\tChildren Chromosomes After Mutation\033[0m\n";
+
+	for (int c = 0; c < 2; c++) {
+		cout << "\tChild " << c + 1 << ": ";
+		for (int g = 0; g < gene; g++) {
+			cout << children[c][g] << " ";
+		}
+		cout << endl;
+	}
+}
+
+void survivorSelection() { //Roulette Wheel Selection
+
+	cout << "\n\x1B[93mSurvivor Selection\033[0m\n\n"; //DEBUG
+
+	vector<vector<int>> newChromosome(population, vector<int>(gene)); // New population
+	vector<float> newFitness(population); // New fitness values
+
+	// Combine old and new chromosomes into a single pool
+	vector<vector<int>> combinedPopulation(population * 2, vector<int>(gene));
+	vector<float> combinedFitness(population * 2);
+
+	// Copy old chromosomes and their fitness values
+	for (int i = 0; i < population; i++) {
+		combinedPopulation[i] = vector<int>(chromosome[i], chromosome[i] + gene);
+		combinedFitness[i] = fitness[i];
+	}
+
+	// Copy new chromosomes (children) and their fitness values (mutation, crossover assumed done)
+	for (int i = 0; i < population; i++) {
+		combinedPopulation[population + i] = vector<int>(children[i % 2], children[i % 2] + gene);
+		combinedFitness[population + i] = fitness[i % population]; // Using old fitness for simplicity, ideally recompute
+	}
+
+	// Calculate total fitness
+	float totalFitness = totalChromosomeFitness(combinedFitness);
+
+	// Calculate selection probabilities
+	vector<float> selectionProbability(combinedFitness.size());
+	for (int i = 0; i < combinedFitness.size(); ++i) {
+		selectionProbability[i] = combinedFitness[i] / totalFitness;
+	}
+
+	// Function to select a survivor based on roulette wheel selection
+	auto selectSurvivor = [&selectionProbability]() -> size_t {
+		float r = static_cast<float>(rand()) / RAND_MAX;
+		float sum = 0.0;
+		for (int i = 0; i < selectionProbability.size(); ++i) {
+			sum += selectionProbability[i];
+			if (r <= sum) {
+				return i;
+			}
+		}
+		return selectionProbability.size() - 1; // Should not happen, but return last index
+		};
+
+	// Select survivors to form the new population
+	for (int i = 0; i < population; ++i) {
+		int survivorIndex = selectSurvivor();
+		for (int j = 0; j < gene; ++j) {
+			chromosome[i][j] = combinedPopulation[survivorIndex][j];
+		}
+		fitness[i] = combinedFitness[survivorIndex]; // Update fitness
+	}
+
+	// Print the new population after survival selection
+	cout << "New Population after Survival Selection:" << endl;
+	for (int i = 0; i < population; ++i) {
+		cout << "Chromosome " << i + 1 << ": ";
+		for (int j = 0; j < gene; ++j) {
+			cout << chromosome[i][j] << " ";
+		}
+		cout << "Fitness: " << fitness[i] << endl;
+	}
+}
+
 int main() {
 	srand(time(NULL));
 	initializePopulation();
 	evaluateChromosome();
 	parentSelection();
 	crossover();
-	//mutation();
-	//survivorSelection();
+	mutation();
+	survivorSelection();
 	return 0;
 }

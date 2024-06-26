@@ -40,12 +40,11 @@ int countNewChromo;
 float fitness[population]; //fitness data structure
 int parent[2][gene];//parent's data structure
 int children[2][gene];//child's data structure
-
-double avgFitness = 0;
-double bestFitness = -1.0;
+double avgFitness = 0; //average fitness
+double bestFitness = -1.0; //best fitness
 
 //Declare File
-ofstream avgFitnessFile;
+ofstream avgFitnessFile; 
 ofstream bestFitnessFile;
 ofstream bestChromosomeFile;
 
@@ -73,7 +72,9 @@ void initializePopulation() {
 }
 
 void printChromosome() {
-	//Display Chromosomes
+
+	//Display Chromosomes - DEBUG
+	//for each chromosome (c) in the population
 	for (int c = 0; c < population; c++) {
 		cout << "\tChromosome " << c + 1 << ": ";
 		//for each gene (g) in the chromosome
@@ -131,6 +132,8 @@ void evaluateChromosome() {
 }
 
 float totalChromosomeFitness(const vector<float>& fitness) {
+
+	// Accumulate the fitness values of all chromosomes
 	return accumulate(fitness.begin(), fitness.end(), 0.0f);
 }
 
@@ -410,30 +413,45 @@ void mutation() { //Random Resetting Mutation
 
 	cout << "\n\x1B[93mMutation\033[0m\n\n"; //DEBUG
 
+	//for each child (c) in the children data structure
 	for (int c = 0; c < 2; c++) {
+
+		//generate a random number between 0 and 1 to determine if mutation will occur
 		double random = (rand() % 11) / 10.0;
 		
+		//if the random number is less than the mutation probability, mutation will occur
 		if (random < mutationProb) {
-			int selectedGene = (rand() % gene); //Select random Gene
 
-			int mutatedGene;
+			
+			int selectedGene = (rand() % gene); //select a random gene to mutate
+			int mutatedGene; //initialize mutated gene
+
 			do {
-				mutatedGene = (rand() % areaCount) + 1;
-			} while (find(children[c], children[c] + gene, mutatedGene) != children[c] + gene);
 
-			cout << "\tMutating Gene " << selectedGene << " of child " << c + 1 << " from " << children[c][selectedGene] << " to " << mutatedGene << endl; //Debug
+				mutatedGene = (rand() % areaCount) + 1; //generate a random area number between 1 and 40
 
+			} while (find(children[c], children[c] + gene, mutatedGene) != children[c] + gene); //check if the area is already in the chromosome
+
+			//print the selected gene and the mutated gene - DEBUG
+			cout << "\tMutating Gene " << selectedGene + 1 << " of child " << c + 1 << " from " << children[c][selectedGene] << " to " << mutatedGene << endl; //Debug
+
+			//mutate the selected gene
 			children[c][selectedGene] = mutatedGene;
 		}
 		else {
+
+			//print that mutation did not occur - DEBUG
 			cout << "\tMutation did not occur for child " << c + 1 << endl;
 		}	
 	} 
+	
+	//print the children chromosomes - DEBUG
+	cout << "\x1B[97m\n\tChildren Chromosomes\033[0m\n";
 
-	cout << "\x1B[97m\n\tChildren Chromosomes After Mutation\033[0m\n";
-
+	//for each child (c) in the children data structure
 	for (int c = 0; c < 2; c++) {
 		cout << "\tChild " << c + 1 << ": ";
+		//for each gene (g) in the chromosome
 		for (int g = 0; g < gene; g++) {
 			cout << children[c][g] << " ";
 		}
@@ -495,10 +513,10 @@ void survivorSelection() { //Roulette Wheel Selection
 		fitness[i] = combinedFitness[survivorIndex]; // Update fitness
 	}
 
-	// Print the new population after survival selection
-	cout << "New Population after Survival Selection:" << endl;
+	// Print the new population after survival selection - DEBUG
+	cout << "\tNew Population after Survival Selection:" << endl;
 	for (int i = 0; i < population; ++i) {
-		cout << "Chromosome " << i + 1 << ": ";
+		cout << "\tChromosome " << i + 1 << ": ";
 		for (int j = 0; j < gene; ++j) {
 			cout << chromosome[i][j] << " ";
 		}
@@ -507,7 +525,10 @@ void survivorSelection() { //Roulette Wheel Selection
 }
 
 void copyChromosome() {
+
+	//for each chromosome (c) in the population
 	for (int c = 0; c < 10; c++) {
+		//for each gene (g) in the chromosome
 		for (int g = 0; g < 10; g++) {
 			chromosome[c][g] = newChromosome[c][g];
 		}
@@ -515,26 +536,35 @@ void copyChromosome() {
 }
 
 void calculateAverageFitness() {
+
 	//1. Declare a variable for totalFitness, initialize to 0
 	double totalFitness = 0;
-	//2. For every chromosome
+
+	//2. For each chromosome in the population
 	for (int c = 0; c < population; c++) {
 		//2.1 Accumulate the fitness into totalFitness
 		totalFitness = totalFitness + fitness[c];
 	}
+
 	//3. Divide the totalFitness with population size
 	avgFitness = totalFitness / population;
-	//4. Print out the average to the screen
-	cout << "\nAverage Fitness = " << avgFitness;
+
+	//4. Printout the average to the screen - DEBUG
+	cout << "\n\tAverage Fitness : " << avgFitness;
+
 	//5. Print out the average to an output file that keep average fitness
 	avgFitnessFile << avgFitness << endl;
 }
 
 void recordFitness() {
+
 	//1. Declare the bestChromosome data structure
 	static int bestchromosome[gene];
-	//2. For each chromosome
+
+	//2. For each chromosome in the population
 	for (int c = 0; c < population; c++) {
+
+		// Check if the current chromosome's fitness is better than the best fitness found so far
 		if (fitness[c] > bestFitness) {
 			// Update the best fitness value
 			bestFitness = fitness[c];
@@ -545,11 +575,11 @@ void recordFitness() {
 		}
 	}
 	// Output the best fitness found so far
-	cout << "\n\tBEST-FITNESS-SO-FAR:" << bestFitness;
+	cout << "\n\tBest Fitness So Far : " << bestFitness;
 	// Write the best fitness to the best fitness file
 	bestFitnessFile << bestFitness << endl;
 	// Output the genes of the best chromosome
-	cout << "\n\tBEST CHROMOSOME :";
+	cout << "\n\tBest Chromosome : ";
 	for (int g = 0; g < gene; g++) {
 		// Print each gene of the best chromosome
 		cout << bestchromosome[g] << " ";
@@ -557,6 +587,7 @@ void recordFitness() {
 		// Write each gene of the best chromosome to the best chromosome
 		bestChromosomeFile << bestchromosome[g] << " ";
 	}
+	cout << endl;
 	bestChromosomeFile << endl;
 }
 
@@ -569,15 +600,19 @@ int main() {
 
 	initializePopulation();
 	for (int gen = 0; gen < maxGeneration; gen++) {
-		cout << "\n\x1B[93mGeneration : \033[0m" << gen + 1 << endl;
+
+		//Print the generation number - DEBUG
+		cout << "\n\x1B[93mGeneration : " << gen + 1 << "\n\033[0m" << endl;
 		printChromosome();
 		evaluateChromosome();
 		calculateAverageFitness();
 		recordFitness();
-
 		countNewChromo = 0;
+
 		for (int i = 0; i < population / 2; i++) {
-			cout << "\n\x1B[93mIteration : \033[0m" << i + 1 << endl;
+
+			//Print the iteration number - DEBUG
+			cout << "\n\x1B[96mIteration : " << i + 1 << " Generation : " << gen+1 << "\033[0m";
 			parentSelection();
 			crossover();
 			mutation();

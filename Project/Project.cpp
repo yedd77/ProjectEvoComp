@@ -15,9 +15,9 @@ const float highRiskSum = 10.9833; //total high risk sum
 const int reliefCostSum = 130000; //total relief sum
 const int areaCount = 40; //total area count
 const int population = 30; //population size
-const double crossoverProb = 0.6; //crossover probability
-const double mutationProb = 0.03; //mutation probability
-const int maxGeneration = 1; //number of generations
+const double crossoverProb = 0.5; //crossover probability
+const double mutationProb = 0.1; //mutation probability
+const int maxGeneration = 1000; //number of generations
 
 //damage severity for each area
 const int damageSeverity[areaCount] = { 1,1,1,3,2,2,3,3,3,3,2,2,2,2,2,2,3,2,1,2,2,2,1,1,1,2,3,3,1,2,1,1,3,1,3,2,3,3,1,2};
@@ -339,7 +339,6 @@ void crossover() { //order crossover
 		}
 		cout << endl;
 
-		//SINI
 		// fill the empty spaces in the temporary arrays with the values in the queue before point 2
 		int g = 0;
 		while (g <= point2 && !queue1.empty() && !queue2.empty()) {
@@ -364,7 +363,6 @@ void crossover() { //order crossover
 		queue1.clear();
 		queue2.clear();
 
-		//DEBUG 
 		// print the temporary arrays - DEBUG
 		cout << "\x1B[97m\n\tTemporary Arrays\033[0m\n";
 		cout << "\tTemporary 1: ";
@@ -475,80 +473,17 @@ void copyChromosome() {
 		countNewChromo++;
 	}
 }
-
-/*
-vector<size_t> rankPopulation(const float fitness[], size_t size) { //Function to rank individuals based on their fitness
-
-	vector<size_t> indices(size); // Vector to store indices for sorting
-	iota(indices.begin(), indices.end(), 0); // Fill with 0, 1, 2, ..., size - 1
-	sort(indices.begin(), indices.end(), [&fitness](size_t a, size_t b) { // Sort indices based on fitness
-		return fitness[a] > fitness[b]; // Higher fitness is better
-		});
-	return indices; // Return sorted indices
-}
-
-vector<float> calculateRankProbabilities(size_t size) { //Function to calculate rank based selection probabilities
-
-	vector<float> probabilities(size); // Vector to store probabilities
-	float sumRanks = (size * (size + 1)) / 2.0; 
-	for (size_t i = 0; i < size; i++) { 
-		probabilities[i] = (size - i) / sumRanks;
-	}
-	return probabilities;
-}
-
-size_t selectIndividual(const vector<float>& probabilities) {
-	float r = static_cast<float>(rand()) / RAND_MAX;
-	float sum = 0.0;
-	for (size_t i = 0; i < probabilities.size(); i++) {
-		sum += probabilities[i];
-		if (r <= sum) {
-			return i;
-		}
-	}
-	return probabilities.size() - 1; // Should not happen, but return last index
-}
-
-void survivorSelection() { //Rank Based Selection
-
-	cout << "\n\x1B[93mSurvivor Selection\033[0m\n\n"; //DEBUG
-
-	vector<size_t> rankedIndices = rankPopulation(fitness, population); // Rank the population
-	vector<float> selectionProbabilities = calculateRankProbabilities(population); // Calculate selection probabilities
-
-	countNewChromo = 0;
-
-	// Create new population
-	for (int i = 0; i < population; i++) {
-		size_t selectedIdx = selectIndividual(selectionProbabilities);
-		for (int g = 0; g < gene; g++) {
-			if (countNewChromo < population) {
-				newChromosome[countNewChromo][g] = chromosome[rankedIndices[selectedIdx]][g];
-			}
-		}
-		countNewChromo++;
-	}
-
-	for (int c = 0; c < population; c++)
-	{
-		cout << "\tNew Chromosome " << c + 1 << " : ";
-		for (int g = 0; g < gene; g++)
-		{
-			cout << newChromosome[c][g] << " ";
-		}
-		cout << endl;
-	}
-}
-*/
  
 void survivalSelection() { //Rank-based Selection
 
 	cout << "\n\x1B[93mSurvivor Selection\033[0m\n\n"; //DEBUG
 
 	//declare required variables
-	int rankIndices[population*2]; //rank indices array
-	float selectionProbabilities[population*2]; //selection probabilities array
-	float tempFitness[population*2]; //temporary fitness array
+	int rankIndices[population * 2]; //rank indices array
+	float selectionProbabilities[population * 2]; //selection probabilities array
+	float tempFitness[population * 2]; //temporary fitness array
+	float random; //random number
+	int selectedChromosomes[population][gene]; //selected chromosomes array
 
 	//evaluate the fitness of the temporary chromosomes
 	//for each chromosome (c) in the temporary chromosome data structure
@@ -570,9 +505,8 @@ void survivalSelection() { //Rank-based Selection
 			reliefCostTotal += reliefCost[areaIndex];
 		}
 
-		//calculate fitness value	
+		//calculate fitness value    
 		if (reliefCostTotal >= budget) { //if relief cost exceeds budget, fitness value will be halved
-		
 			tempFitness[c] = ((damageWeight * damageTotal / damageSum) + (highRiskWeight * highRiskTotal / highRiskSum) + (reliefCostWeight * reliefCostTotal / reliefCostSum)) * 0.5;
 		}
 		else {
@@ -580,61 +514,117 @@ void survivalSelection() { //Rank-based Selection
 		}
 	}
 
-	//rank the population
-	//for each chromosome (c) in the temporary chromosome data structure
+	//rank the chromosomes based on their fitness
+	iota(rankIndices, rankIndices + population * 2, 0);
+
+	//sort the rank indices array based on the fitness values
+	sort(rankIndices, rankIndices + population * 2, [&](int a, int b) { return tempFitness[a] > tempFitness[b]; });
+
+	//print the tempchromosome - DEBUG
+	cout << "\x1B[97m\n\tTemporary Chromosome\033[0m\n";
 	for (int c = 0; c < population * 2; c++) {
-		rankIndices[c] = c; //initialize the rank indices array
+		cout << "\tChromosome " << c + 1 << ": ";
+		for (int g = 0; g < gene; g++) {
+			cout << tempChromosome[c][g] << " ";
+		}
+		cout << endl;
 	}
 
-	//sort the rank indices array based on the fitness values 
-	for (int i = 0; i < population * 2; i++) {
-		for (int j = i + 1; j < population * 2; j++) {
-			if (tempFitness[rankIndices[i]] < tempFitness[rankIndices[j]]) {
-				int temp = rankIndices[i];
-				rankIndices[i] = rankIndices[j];
-				rankIndices[j] = temp;
+	//print the tempfitness - DEBUG
+	cout << "\x1B[97m\n\tTemporary Fitness\033[0m\n";
+	for (int c = 0; c < population * 2; c++) {
+		cout << "\tChromosome " << c + 1 << ": ";
+		cout << tempFitness[c] << endl;
+	}
+
+	//print the rank indices - DEBUG
+	cout << "\x1B[97m\n\tRank Indices\033[0m\n";
+	for (int c = 0; c < population * 2; c++) {
+		cout << "\tChromosome " << rankIndices[c] + 1 << ": ";
+		cout << tempFitness[rankIndices[c]] << endl;
+	}
+
+	//calculate the selection probabilities
+	float sumOfRanks = (population * 2 * (population * 2 + 1)) / 2.0; //calculate the sum of ranks
+	for (int c = 0; c < population * 2; c++) {
+		selectionProbabilities[c] = (population * 2 - c) / sumOfRanks;
+	}
+
+	//print the selection probabilities - DEBUG
+	cout << "\x1B[97m\n\tSelection Probabilities\033[0m\n";
+	for (int c = 0; c < population * 2; c++) {
+		cout << "\tChromosome " << rankIndices[c] + 1 << ": ";
+		cout << selectionProbabilities[c] << endl;
+	}
+
+	//select the chromosomes based on the selection probabilities
+	for (int i = 0; i < population; i++) {
+		int selectedIndex = -1; //initialize selected index
+		random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX); //generate a random number between 0 and 1
+		float cumulativeProbability = 0; //initialize cumulative probability
+
+		for (int j = 0; j < population * 2; j++) {
+			cumulativeProbability += selectionProbabilities[j]; //calculate the cumulative probability
+
+			//if the random number is less than the cumulative probability, select the chromosome
+			if (random <= cumulativeProbability) {
+				selectedIndex = j; //assign the selected index
+				break;
+			}
+		}
+
+		//copy the selected chromosome to the selected chromosomes array
+		if (selectedIndex != -1) {
+			for (int g = 0; g < gene; g++) {
+				selectedChromosomes[i][g] = tempChromosome[rankIndices[selectedIndex]][g];
 			}
 		}
 	}
 
-	//calculate the selection probabilities
-	float sumRanks = (population * 2 * (population * 2 + 1)) / 2.0;
-	for (int i = 0; i < population * 2; i++) {
-		selectionProbabilities[i] = (population * 2 - i) / sumRanks;
+	//print the selected chromosomes - DEBUG
+	cout << "\x1B[97m\n\tSelected Chromosomes\033[0m\n";
+	for (int c = 0; c < population; c++) {
+		cout << "\tChromosome " << c + 1 << ": ";
+		for (int g = 0; g < gene; g++) {
+			cout << selectedChromosomes[c][g] << " ";
+		}
+		cout << endl;
 	}
 
-	//select the chromosomes for the new population
-	countNewChromo = 0;
-
+	//copy the selected chromosomes to the chromosome data structure
+	for (int c = 0; c < population; c++) {
+		for (int g = 0; g < gene; g++) {
+			chromosome[c][g] = selectedChromosomes[c][g];
+		}
+	}
 }
 
 void calculateAverageFitness() {
 
-	//1. Declare a variable for totalFitness, initialize to 0
 	double totalFitness = 0;
 
-	//2. For each chromosome in the population
+	//For each chromosome in the population
 	for (int c = 0; c < population; c++) {
-		//2.1 Accumulate the fitness into totalFitness
+		//Accumulate the fitness into totalFitness
 		totalFitness = totalFitness + fitness[c];
 	}
 
-	//3. Divide the totalFitness with population size
+	//Divide the totalFitness with population size
 	avgFitness = totalFitness / population;
 
-	//4. Printout the average to the screen - DEBUG
+	//Printout the average to the screen - DEBUG
 	cout << "\n\tAverage Fitness : " << avgFitness;
 
-	//5. Print out the average to an output file that keep average fitness
+	//Print out the average to an output file that keep average fitness
 	avgFitnessFile << avgFitness << endl;
 }
 
 void recordFitness() {
 
-	//1. Declare the bestChromosome data structure
+	//Declare the bestChromosome data structure
 	static int bestchromosome[gene];
 
-	//2. For each chromosome in the population
+	//For each chromosome in the population
 	for (int c = 0; c < population; c++) {
 
 		// Check if the current chromosome's fitness is better than the best fitness found so far
@@ -665,7 +655,8 @@ void recordFitness() {
 }
 
 int main() {
-	srand(time(NULL));
+	srand(time(NULL)); //seed the random number generator
+
 	//Open files to record details
 	avgFitnessFile.open("avgFitnessFile.txt");
 	bestChromosomeFile.open("bestchromosome.txt");
@@ -689,13 +680,12 @@ int main() {
 			parentSelection();
 			crossover();
 			mutation();
-			cout << "\n\x1B[91m " << countNewChromo << "\n\033[0m" << endl;
 		}
 		copyChromosome();
-		//survivorSelection();
-
+		survivalSelection();
 	}
-	//Close files after recording
+
+	//Close files after record details
 	avgFitnessFile.close();
 	bestChromosomeFile.close();
 	bestFitnessFile.close();
